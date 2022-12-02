@@ -1,0 +1,10 @@
+name = "d1-worker"
+main = "src/index.js"
+compatibility_date = "2022-12-02"
+
+[[ d1_databases ]]
+binding = "DB" # available in your Worker on `env.DB`
+database_name = "d1-example"
+database_id = "0ed8061b-1237-4ba5-873f-1db149d5054c"
+
+
