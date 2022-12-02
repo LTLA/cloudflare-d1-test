@@ -23,3 +23,5 @@ fetch("http://172.16.2.252:8787/index_project", {
         "Content-Type": "application/json"
     }
 });
+
+//fetch("http://172.16.2.252:8787/search?query=Aaron").then(res => res.json()).then(console.log);

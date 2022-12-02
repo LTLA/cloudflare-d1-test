@@ -18,6 +18,7 @@ router.put('/index_project', async (request, env, context) => {
     let version = body.version;
     let paths = body.paths;
 
+    // Setting up the tables if they don't already exist.
     let statements = [
         env.DB.prepare(`
 CREATE TABLE IF NOT EXISTS gypsum_files (
@@ -31,10 +32,20 @@ CREATE TABLE IF NOT EXISTS gypsum_meta_text (
     id TEXT NOT NULL,
     field TEXT NOT NULL,
     contents TEXT NOT NULL,
-    FOREIGN KEY(id) REFERENCES gypsum_files(id)
+    CONSTRAINT fk_id
+        FOREIGN KEY (id)
+        REFERENCES gypsum_files (id)
+        ON DELETE CASCADE
 )`)
     ];
 
+    // Adding a deletion command to flush existing entries for this project version.
+    statements.push(env.DB.prepare(`
+DELETE FROM gypsum_files 
+WHERE project = ? AND version = ?
+`).bind(project, version)) 
+
+    // Indexing the current thing.
     for (const f of paths) {
         let id = project + ":" + f.path + "@" + version;
         console.log(id);
@@ -53,6 +64,22 @@ CREATE TABLE IF NOT EXISTS gypsum_meta_text (
 
     let status = await env.DB.batch(statements);
     return new Response(null, { status: 202 });
+});
+
+router.get('/search', async (request, env, context) => {
+    const { query } = request;
+    console.log(query);
+
+    let args = ["%" + query.query + "%"];
+    let command = "SELECT id FROM gypsum_meta_text\nWHERE contents LIKE ?\n";
+    if ("field" in query) {
+        command += "AND field == ?";
+        args.push(query.field);
+    }
+
+    console.log(command);
+    let res = await env.DB.prepare(command).bind(...args).all();
+    return Response.json(res); 
 });
 
 export default {
