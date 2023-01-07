@@ -137,8 +137,17 @@ CREATE TABLE IF NOT EXISTS gif_sentiment (
 });
 
 router.get('/random', async (request, env, context) => {
-    let command = "SELECT gif_path, show_id FROM gifs ORDER BY RANDOM() LIMIT 1";
-    let res = await env.DB.prepare(command).all();
+    let statements = [
+        env.DB.prepare("DROP VIEW IF EXISTS random"),
+        env.DB.prepare("CREATE TEMPORARY TABLE random AS SELECT gif_path, show_id FROM gifs ORDER BY RANDOM() LIMIT 1"),
+        env.DB.prepare("SELECT gif_path, show_id FROM random"),
+        env.DB.prepare(`SELECT show_name, shows.show_id FROM shows 
+INNER JOIN random ON shows.show_id == random.show_id`),
+        env.DB.prepare(`SELECT character_name, characters.character_id FROM characters 
+INNER JOIN character_gif ON characters.character_id == character_gif.character_id
+INNER JOIN random ON character_gif.gif_path == random.gif_path`)
+    ];
+    let res = await env.DB.batch(statements);
     return Response.json(res); 
 });
 
